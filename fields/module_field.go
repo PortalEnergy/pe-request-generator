@@ -4,7 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/go-ozzo/ozzo-validation/v4"
+
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
 )
 
@@ -18,6 +19,7 @@ type ModuleFieldType string
 const (
 	ModuleFieldTypeString ModuleFieldType = "string"
 	ModuleFieldTypeInt    ModuleFieldType = "int"
+	ModuleFieldTypeFloat  ModuleFieldType = "float"
 	ModuleFieldTypeArray  ModuleFieldType = "array"
 	ModuleFieldTypeObject ModuleFieldType = "object"
 )
@@ -76,15 +78,16 @@ const (
 )
 
 type ModuleField struct {
-	ScanObject sql.Scanner                                  `json:"-"`
-	Name       string                                       `json:"-"`
-	Title      string                                       `json:"title"`
-	Type       ModuleFieldType                              `json:"type"`
-	FormType   ModuleFieldFormType                          `json:"form_type,omitempty"`
-	Example    string                                       `json:"example,omitempty"`
-	Options    []ModuleFieldOptions                         `json:"options,omitempty"`
-	Check      []CheckRules                                 `json:"check,omitempty"`
-	Convert    func(value interface{}) (interface{}, error) `json:"-"`
+	ScanObject     sql.Scanner                                  `json:"-"`
+	Name           string                                       `json:"-"`
+	SelectFunction *string                                      `json:"-"`
+	Title          string                                       `json:"title"`
+	Type           ModuleFieldType                              `json:"type"`
+	FormType       ModuleFieldFormType                          `json:"form_type,omitempty"`
+	Example        string                                       `json:"example,omitempty"`
+	Options        []ModuleFieldOptions                         `json:"options,omitempty"`
+	Check          []CheckRules                                 `json:"check,omitempty"`
+	Convert        func(value interface{}) (interface{}, error) `json:"-"`
 }
 
 type ModuleFilterField struct {

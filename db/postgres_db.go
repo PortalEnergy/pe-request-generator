@@ -60,25 +60,31 @@ func (db *DB) List(
 	joins []actions.ModuleActionJoin,
 ) (result []interface{}, rowsCount int64, err error) {
 	fieldsString := make([]string, 0, 10)
+	fieldsFunction := make(map[string]string)
 	for _, field := range fields {
 		fieldsString = append(fieldsString, field.Name)
+		if field.SelectFunction != nil {
+			fieldsFunction[field.Name] = *field.SelectFunction
+		}
 	}
 
 	pq := PostgresQuery{
-		TableName:    tableName,
-		PrimaryKey:   primaryKey,
-		Fields:       fieldsString,
-		SearchFields: searchFields,
-		SearchText:   searchText,
-		Filter:       filter,
-		Joins:        joins,
-		Where:        where,
-		Page:         page,
-		Size:         size,
+		TableName:      tableName,
+		PrimaryKey:     primaryKey,
+		Fields:         fieldsString,
+		FieldsFunction: fieldsFunction,
+		SearchFields:   searchFields,
+		SearchText:     searchText,
+		Filter:         filter,
+		Joins:          joins,
+		Where:          where,
+		Page:           page,
+		Size:           size,
 	}
 	query, values := pq.GetQuery(false)
 	countQuery, _ := pq.GetQuery(true)
 
+	fmt.Println("QUERY: ", query)
 	log.Infoln("LIST QUERY: ", query)
 	log.Infoln("LIST COUNT QUERY: ", countQuery)
 
@@ -94,6 +100,7 @@ func (db *DB) List(
 	}
 
 	if err != nil {
+		fmt.Println("LIST ERR: ", err)
 		log.Errorln("LIST ERR: ", err)
 		return nil, 0, err
 	}
@@ -119,6 +126,7 @@ func (db *DB) List(
 
 		err = rows.Scan(columnValues...)
 		if err != nil {
+			fmt.Println("SCAN ERR: ", err)
 			continue
 		}
 
@@ -152,17 +160,32 @@ func (db *DB) List(
 				continue
 			}
 
-			log.Infoln("VIEW JOIN VALUES: ", joinValues, join)
+			checkString := ""
+			for _, val := range joinValues {
+				if val == nil {
+					continue
+				}
+
+				for _, v := range val {
+					if v == nil {
+						continue
+					}
+					checkString = fmt.Sprintf("%v%v", checkString, v)
+				}
+			}
 
 			joinResults := make([]map[string]interface{}, 0, 10)
-			for _, joinValue := range joinValues {
-				resultMap := make(map[string]interface{})
-				for index, field := range join.Fields {
-					resultMap[field] = joinValue[index]
+
+			if len(checkString) > 0 {
+				for _, joinValue := range joinValues {
+					resultMap := make(map[string]interface{})
+					for index, field := range join.Fields {
+						resultMap[field] = joinValue[index]
+					}
+					joinResults = append(joinResults, resultMap)
 				}
-				joinResults = append(joinResults, resultMap)
+				log.Infoln("VIEW JOIN RESULTS: ", joinResults)
 			}
-			log.Infoln("VIEW JOIN RESULTS: ", joinResults)
 
 			currentResult[join.ResultArrayName] = joinResults
 			offset += 1
@@ -172,6 +195,7 @@ func (db *DB) List(
 	}
 
 	result = append(result, results...)
+	fmt.Println("LIST SUCCESS: ", result)
 
 	var count int64
 	if len(joins) > 0 {

@@ -8,16 +8,17 @@ import (
 )
 
 type PostgresQuery struct {
-	TableName    string
-	PrimaryKey   string
-	Fields       []string
-	SearchFields []string
-	SearchText   string
-	Filter       map[string]string
-	Joins        []actions.ModuleActionJoin
-	Where        *actions.ModuleActionWhere
-	Page         int64
-	Size         int64
+	TableName      string
+	PrimaryKey     string
+	Fields         []string
+	FieldsFunction map[string]string
+	SearchFields   []string
+	SearchText     string
+	Filter         map[string]string
+	Joins          []actions.ModuleActionJoin
+	Where          *actions.ModuleActionWhere
+	Page           int64
+	Size           int64
 }
 
 func (pq *PostgresQuery) GetQuery(isCount bool) (string, []interface{}) {
@@ -27,7 +28,13 @@ func (pq *PostgresQuery) GetQuery(isCount bool) (string, []interface{}) {
 	fields = append(fields, fmt.Sprintf(`parent."%s"`, pq.PrimaryKey))
 
 	for _, field := range pq.Fields {
-		fields = append(fields, fmt.Sprintf(`parent."%s"`, field))
+		selectFunction, ok := pq.FieldsFunction[field]
+
+		if !ok {
+			fields = append(fields, fmt.Sprintf(`parent."%s"`, field))
+		} else {
+			fields = append(fields, fmt.Sprintf(`%s(parent."%s")`, selectFunction, field))
+		}
 	}
 
 	for index, join := range pq.Joins {
