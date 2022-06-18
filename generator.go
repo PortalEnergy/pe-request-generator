@@ -167,11 +167,6 @@ func (generator *Generator) actionList(module BaseModule, action actions.ListMod
 			return
 		}
 
-		if len(results) == 0 {
-			response.ErrorResponse(l, c, http.StatusNotFound, "Not found", nil)
-			return
-		}
-
 		var filter map[string]fields.ModuleFilterField
 		if addFilters == "true" {
 			filter = make(map[string]fields.ModuleFilterField)
