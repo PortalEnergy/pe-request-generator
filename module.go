@@ -1,27 +1,18 @@
 package module
 
 import (
-	"fmt"
-
-	"github.com/gin-gonic/gin"
 	"github.com/portalenergy/pe-request-generator/actions"
 	"github.com/portalenergy/pe-request-generator/fields"
 )
 
 type BaseModule struct {
-	Name                 string                                            `json:"name"`
-	TableName            string                                            `json:"table_name"`
-	PrimaryKey           string                                            `json:"primary_key"`
-	Path                 string                                            `json:"path"`
-	AuthMiddleware       func(module actions.ModuleAction) gin.HandlerFunc `json:"auth_middleware"`
-	PermissionMiddleware func(permissions []string) gin.HandlerFunc        `json:"permission_middleware"`
-	Fields               []fields.ModuleField                              `json:"fields"`
-	Defrec               actions.DefrecModuleAction                        `json:"defrec"`
-	Actions              []actions.ModuleAction                            `json:"actions"`
-}
-
-func (module *BaseModule) FullPath() string {
-	return fmt.Sprintf("%s/%s", module.Path, module.Name)
+	Name       string                     `json:"name"`
+	TableName  string                     `json:"table_name"`
+	PrimaryKey string                     `json:"primary_key"`
+	Path       string                     `json:"path"`
+	Fields     []fields.ModuleField       `json:"fields"`
+	Defrec     actions.DefrecModuleAction `json:"defrec"`
+	Actions    []actions.ModuleAction     `json:"actions"`
 }
 
 func (module BaseModule) GetField(fieldName string) *fields.ModuleField {

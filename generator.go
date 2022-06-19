@@ -21,20 +21,28 @@ const (
 )
 
 type Generator struct {
-	db      db.DBExecutor
+	db      func(module *BaseModule) db.DBExecutor
 	group   gin.RouterGroup
-	Modules []BaseModule
+	Modules []*BaseModule
+
+	AuthMiddleware       func(module actions.ModuleAction) gin.HandlerFunc
+	PermissionMiddleware func(action actions.ModuleAction, permissions []string) gin.HandlerFunc
 }
 
 func NewGenerator(
-	db db.DBExecutor,
+	db func(module *BaseModule) db.DBExecutor,
 	group gin.RouterGroup,
-	modules []BaseModule,
+	modules []*BaseModule,
+	permissionMiddleware func(action actions.ModuleAction, permissions []string) gin.HandlerFunc,
+	authMiddleware func(action actions.ModuleAction) gin.HandlerFunc,
 ) *Generator {
 	return &Generator{
 		db:      db,
 		group:   group,
 		Modules: modules,
+
+		PermissionMiddleware: permissionMiddleware,
+		AuthMiddleware:       authMiddleware,
 	}
 }
 
@@ -45,87 +53,106 @@ func (generator *Generator) Run() {
 			case actions.ModuleActionNameList:
 				listAction, _ := action.(actions.ListModuleAction)
 
-				route := generator.group.GET(module.FullPath(), generator.actionList(module, listAction))
+				listGrpup := generator.group.Group(module.Path)
 				if listAction.Auth {
-					if module.AuthMiddleware == nil {
+					if generator.AuthMiddleware == nil {
 						panic(fmt.Sprintf("auth middleware not implemented in module: %s", module.Name))
 					}
-					route.Use(module.AuthMiddleware(listAction))
+					listGrpup.Use(generator.AuthMiddleware(listAction))
+					fmt.Println("listAction.Permission AUTH ADDED!!!: ", listAction.Permission)
 				}
 				if len(listAction.Permission) > 0 {
-					if module.PermissionMiddleware == nil {
+					if generator.PermissionMiddleware == nil {
 						panic(fmt.Sprintf("permission middleware not implemented in module: %s", module.Name))
 					}
-					route.Use(module.PermissionMiddleware(listAction.Permission))
+					listGrpup.Use(generator.PermissionMiddleware(listAction, listAction.Permission))
+					fmt.Println("listAction.Permission ADDED!!!: ", listAction.Permission)
 				}
+
+				listGrpup.GET(module.Name, generator.actionList(module, listAction))
 			case actions.ModuleActionNameAdd:
 				addAction, _ := action.(actions.AddModuleAction)
-				route := generator.group.PUT(module.FullPath(), generator.actionAdd(module, addAction))
-				generator.group.GET(fmt.Sprintf("%s/defrec", module.FullPath()), generator.actionDefrec(module))
+
+				addGrpup := generator.group.Group(module.Path)
 				if addAction.Auth {
-					if module.AuthMiddleware == nil {
+					if generator.AuthMiddleware == nil {
 						panic(fmt.Sprintf("auth middleware not implemented in module: %s", module.Name))
 					}
-					route.Use(module.AuthMiddleware(addAction))
+					addGrpup.Use(generator.AuthMiddleware(addAction))
 				}
 				if len(addAction.Permission) > 0 {
-					if module.PermissionMiddleware == nil {
+					if generator.PermissionMiddleware == nil {
 						panic(fmt.Sprintf("permission middleware not implemented in module: %s", module.Name))
 					}
-					route.Use(module.PermissionMiddleware(addAction.Permission))
+					addGrpup.Use(generator.PermissionMiddleware(addAction, addAction.Permission))
 				}
+				addGrpup.PUT(module.Name, generator.actionAdd(module, addAction))
+
+				defrecGroup := generator.group.Group(fmt.Sprintf("%s/%s/defrec", module.Path, module.Name))
+				defrecGroup.GET("/", generator.actionDefrec(module))
+
 			case actions.ModuleActionNameView:
 				viewAction, _ := action.(actions.ViewModuleAction)
-				route := generator.group.GET(fmt.Sprintf("%s/view/:bykey/:value", module.FullPath()), generator.actionView(module, viewAction))
+
+				viewGrout := generator.group.Group(module.Path)
 				if viewAction.Auth {
-					if module.AuthMiddleware == nil {
+					if generator.AuthMiddleware == nil {
 						panic(fmt.Sprintf("auth middleware not implemented in module: %s", module.Name))
 					}
-					route.Use(module.AuthMiddleware(viewAction))
+					viewGrout.Use(generator.AuthMiddleware(viewAction))
 				}
 				if len(viewAction.Permission) > 0 {
-					if module.PermissionMiddleware == nil {
+					if generator.PermissionMiddleware == nil {
 						panic(fmt.Sprintf("permission middleware not implemented in module: %s", module.Name))
 					}
-					route.Use(module.PermissionMiddleware(viewAction.Permission))
+					viewGrout.Use(generator.PermissionMiddleware(viewAction, viewAction.Permission))
 				}
+
+				viewGrout.GET(fmt.Sprintf("%s/view/:bykey/:value", module.Name), generator.actionView(module, viewAction))
 			case actions.ModuleActionNameUpdate:
 				updateAction, _ := action.(actions.UpdateModuleAction)
-				route := generator.group.POST(fmt.Sprintf("%s/:bykey/:value", module.FullPath()), generator.actionUpdate(module, updateAction))
+
+				updateGroup := generator.group.Group(module.Path)
 				if updateAction.Auth {
-					if module.AuthMiddleware == nil {
+					if generator.AuthMiddleware == nil {
 						panic(fmt.Sprintf("auth middleware not implemented in module: %s", module.Name))
 					}
-					route.Use(module.AuthMiddleware(updateAction))
+					updateGroup.Use(generator.AuthMiddleware(updateAction))
 				}
 				if len(updateAction.Permission) > 0 {
-					if module.PermissionMiddleware == nil {
+					if generator.PermissionMiddleware == nil {
 						panic(fmt.Sprintf("permission middleware not implemented in module: %s", module.Name))
 					}
-					route.Use(module.PermissionMiddleware(updateAction.Permission))
+					updateGroup.Use(generator.PermissionMiddleware(updateAction, updateAction.Permission))
 				}
+
+				updateGroup.POST(fmt.Sprintf("%s/:bykey/:value", module.Name), generator.actionUpdate(module, updateAction))
 			case actions.ModuleActionNameDelete:
 				deleteAction, _ := action.(actions.DeleteModuleAction)
-				route := generator.group.DELETE(fmt.Sprintf("%s/delete/:bykey/:value", module.FullPath()), generator.actionDelete(module, deleteAction))
+
+				deleteGroup := generator.group.Group(module.Path)
 				if deleteAction.Auth {
-					if module.AuthMiddleware == nil {
+					if generator.AuthMiddleware == nil {
 						panic(fmt.Sprintf("auth middleware not implemented in module: %s", module.Name))
 					}
-					route.Use(module.AuthMiddleware(deleteAction))
+					deleteGroup.Use(generator.AuthMiddleware(deleteAction))
 				}
 				if len(deleteAction.Permission) > 0 {
-					if module.PermissionMiddleware == nil {
+					if generator.PermissionMiddleware == nil {
 						panic(fmt.Sprintf("permission middleware not implemented in module: %s", module.Name))
 					}
-					route.Use(module.PermissionMiddleware(deleteAction.Permission))
+					deleteGroup.Use(generator.PermissionMiddleware(deleteAction, deleteAction.Permission))
 				}
+				deleteGroup.DELETE(fmt.Sprintf("%s/delete/:bykey/:value", module.Name), generator.actionDelete(module, deleteAction))
 			}
 		}
 	}
 }
 
-func (generator *Generator) actionList(module BaseModule, action actions.ListModuleAction) func(c *gin.Context) {
+func (generator *Generator) actionList(module *BaseModule, action actions.ListModuleAction) func(c *gin.Context) {
 	return func(c *gin.Context) {
+		defer action.AfterRequest(c)
+
 		ctx := c.Request.Context()
 		l, _ := icontext.GetLogger(ctx)
 
@@ -149,7 +176,7 @@ func (generator *Generator) actionList(module BaseModule, action actions.ListMod
 			}
 		}
 
-		results, count, err := generator.db.List(
+		results, count, err := generator.db(module).List(
 			l,
 			module.TableName,
 			module.PrimaryKey,
@@ -162,9 +189,21 @@ func (generator *Generator) actionList(module BaseModule, action actions.ListMod
 			&action.Where,
 			action.Join,
 		)
+
 		if err != nil {
 			response.ErrorResponse(l, c, http.StatusBadRequest, err.Error(), nil)
 			return
+		}
+
+		var heads map[string]string
+		if addHeads == "true" {
+			heads = make(map[string]string)
+
+			for _, realField := range module.Fields {
+				if containsStrings(action.Fields, realField.Name) {
+					heads[realField.Name] = realField.Title
+				}
+			}
 		}
 
 		var filter map[string]fields.ModuleFilterField
@@ -179,7 +218,7 @@ func (generator *Generator) actionList(module BaseModule, action actions.ListMod
 						Type:       realField.Type,
 						FormType:   realField.FormType,
 						Example:    realField.Example,
-						Options:    realField.Options,
+						Options:    realField.OptionsFunc(c),
 						Check:      realField.Check,
 						Convert:    realField.Convert,
 					}
@@ -188,15 +227,12 @@ func (generator *Generator) actionList(module BaseModule, action actions.ListMod
 			}
 		}
 
-		var heads map[string]string
-		if addHeads == "true" {
-			heads = make(map[string]string)
+		if len(results) == 0 {
+			results = make([]interface{}, 0, 10)
+		}
 
-			for _, realField := range module.Fields {
-				if containsStrings(action.Fields, realField.Name) {
-					heads[realField.Name] = realField.Title
-				}
-			}
+		if len(heads) == 0 {
+			heads = make(map[string]string)
 		}
 
 		output := struct {
@@ -218,12 +254,10 @@ func (generator *Generator) actionList(module BaseModule, action actions.ListMod
 		}
 
 		response.Response(l, c, output)
-
-		action.AfterRequest(c)
 	}
 }
 
-func (generator *Generator) actionAdd(module BaseModule, action actions.AddModuleAction) func(c *gin.Context) {
+func (generator *Generator) actionAdd(module *BaseModule, action actions.AddModuleAction) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
 		l, _ := icontext.GetLogger(ctx)
@@ -260,7 +294,7 @@ func (generator *Generator) actionAdd(module BaseModule, action actions.AddModul
 
 		mapInput := generator.mapRequestInput(input, module)
 		fmt.Println(mapInput)
-		output, err := generator.db.Add(l, module.TableName, module.PrimaryKey, realFields, mapInput)
+		output, err := generator.db(module).Add(l, module.TableName, module.PrimaryKey, realFields, mapInput)
 		if err != nil {
 			response.ErrorResponse(l, c, http.StatusBadRequest, GeneratorErrorAdd, []string{
 				err.Error(),
@@ -274,7 +308,7 @@ func (generator *Generator) actionAdd(module BaseModule, action actions.AddModul
 	}
 }
 
-func (generator *Generator) actionDefrec(module BaseModule) func(c *gin.Context) {
+func (generator *Generator) actionDefrec(module *BaseModule) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
 		l, _ := icontext.GetLogger(ctx)
@@ -291,7 +325,7 @@ func (generator *Generator) actionDefrec(module BaseModule) func(c *gin.Context)
 	}
 }
 
-func (generator *Generator) actionView(module BaseModule, action actions.ViewModuleAction) func(c *gin.Context) {
+func (generator *Generator) actionView(module *BaseModule, action actions.ViewModuleAction) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
 		l, _ := icontext.GetLogger(ctx)
@@ -326,7 +360,7 @@ func (generator *Generator) actionView(module BaseModule, action actions.ViewMod
 			}
 		}
 
-		result, err := generator.db.View(l, module.TableName, module.PrimaryKey, realFields, []interface{}{whereKey}, []interface{}{whereValue}, &action.Where, action.Join)
+		result, err := generator.db(module).View(l, module.TableName, module.PrimaryKey, realFields, []interface{}{whereKey}, []interface{}{whereValue}, &action.Where, action.Join)
 		if err != nil {
 			response.ErrorResponse(l, c, http.StatusBadRequest, err.Error(), nil)
 			return
@@ -338,7 +372,7 @@ func (generator *Generator) actionView(module BaseModule, action actions.ViewMod
 	}
 }
 
-func (generator *Generator) actionUpdate(module BaseModule, action actions.UpdateModuleAction) func(c *gin.Context) {
+func (generator *Generator) actionUpdate(module *BaseModule, action actions.UpdateModuleAction) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
 		l, _ := icontext.GetLogger(ctx)
@@ -387,7 +421,7 @@ func (generator *Generator) actionUpdate(module BaseModule, action actions.Updat
 		}
 
 		mapInput := generator.mapRequestInput(input, module)
-		output, err := generator.db.Update(l, module.TableName, module.PrimaryKey, realFields, mapInput, whereKey, whereValue)
+		output, err := generator.db(module).Update(l, module.TableName, module.PrimaryKey, realFields, mapInput, whereKey, whereValue)
 		if err != nil {
 			response.ErrorResponse(l, c, http.StatusBadRequest, GeneratorErrorUpdate, nil)
 			return
@@ -399,7 +433,7 @@ func (generator *Generator) actionUpdate(module BaseModule, action actions.Updat
 	}
 }
 
-func (generator *Generator) actionDelete(module BaseModule, action actions.DeleteModuleAction) func(c *gin.Context) {
+func (generator *Generator) actionDelete(module *BaseModule, action actions.DeleteModuleAction) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
 		l, _ := icontext.GetLogger(ctx)
@@ -425,7 +459,9 @@ func (generator *Generator) actionDelete(module BaseModule, action actions.Delet
 			return
 		}
 
-		err = generator.db.Delete(l, module.TableName, whereKey, whereValue)
+		err = generator.db(module).Delete(l, module.TableName, whereKey, whereValue)
+
+		fmt.Println("DELETE eRROR: ", err)
 		if err != nil {
 			response.ErrorResponse(l, c, http.StatusBadRequest, GeneratorErrorDelete, []string{
 				err.Error(),

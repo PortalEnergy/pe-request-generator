@@ -1,6 +1,8 @@
 package db
 
 import (
+	"database/sql"
+
 	"github.com/portalenergy/pe-request-generator/actions"
 	"github.com/portalenergy/pe-request-generator/fields"
 	log "github.com/sirupsen/logrus"
@@ -33,5 +35,5 @@ type DBExecutor interface {
 	Add(log *log.Entry, tableName string, primaryKey string, fields []fields.ModuleField, input map[string]interface{}) (interface{}, error)
 	Update(log *log.Entry, tableName string, primaryKey string, fields []fields.ModuleField, input map[string]interface{}, key interface{}, value interface{}) (interface{}, error)
 	Delete(log *log.Entry, tableName string, key interface{}, value interface{}) error
-	RawRequest(log *log.Entry, query string, params ...interface{}) (interface{}, error)
+	RawRequest(log *log.Entry, query string, params ...interface{}) (*sql.Rows, error)
 }

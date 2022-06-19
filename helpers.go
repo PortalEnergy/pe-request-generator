@@ -1,7 +1,5 @@
 package module
 
-
-
 import (
 	"fmt"
 	"strconv"
@@ -26,7 +24,7 @@ func (generator *Generator) getPagination(page int64, size int64) (int64, int64,
 	return limit, offset, page
 }
 
-func (generator *Generator) normalizeFilters(data map[string]string, module BaseModule, listAction actions.ListModuleAction) map[string]string {
+func (generator *Generator) normalizeFilters(data map[string]string, module *BaseModule, listAction actions.ListModuleAction) map[string]string {
 	resultFilterMap := make(map[string]string)
 
 	filters := make(map[string]fields.ModuleField)
@@ -56,7 +54,7 @@ parentLoop:
 
 func (generator *Generator) checkRequest(
 	data map[string]interface{},
-	module BaseModule,
+	module *BaseModule,
 	action actions.ModuleAction,
 	scenario fields.Scenario,
 ) map[string]string {
@@ -93,7 +91,7 @@ func (generator *Generator) checkRequest(
 
 func (generator *Generator) mapRequestInput(
 	data map[string]interface{},
-	module BaseModule,
+	module *BaseModule,
 ) map[string]interface{} {
 	output := make(map[string]interface{})
 

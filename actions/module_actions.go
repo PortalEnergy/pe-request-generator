@@ -16,6 +16,7 @@ const (
 )
 
 type ModuleAction interface {
+	GetModuleName() string
 	Action() ModuleActionName
 	BeforeRequest(c *gin.Context) error
 	AfterRequest(c *gin.Context)

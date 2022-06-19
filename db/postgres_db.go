@@ -84,7 +84,6 @@ func (db *DB) List(
 	query, values := pq.GetQuery(false)
 	countQuery, _ := pq.GetQuery(true)
 
-	fmt.Println("QUERY: ", query)
 	log.Infoln("LIST QUERY: ", query)
 	log.Infoln("LIST COUNT QUERY: ", countQuery)
 
@@ -195,7 +194,6 @@ func (db *DB) List(
 	}
 
 	result = append(result, results...)
-	fmt.Println("LIST SUCCESS: ", result)
 
 	var count int64
 	if len(joins) > 0 {
@@ -453,6 +451,6 @@ func (db *DB) Delete(log *log.Entry, tableName string, key interface{}, value in
 	return nil
 }
 
-func (db *DB) RawRequest(log *log.Entry, query string, params ...interface{}) (interface{}, error) {
-	return nil, nil
+func (db *DB) RawRequest(log *log.Entry, query string, params ...interface{}) (*sql.Rows, error) {
+	return db.sql.Query(query, params...)
 }
