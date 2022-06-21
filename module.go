@@ -27,17 +27,21 @@ func (module BaseModule) GetField(fieldName string) *fields.ModuleField {
 
 func (module BaseModule) GetRules(context *gin.Context, field fields.ModuleField, scenario fields.Scenario) []fields.CheckRules {
 	checkRules := make([]fields.CheckRules, 0, 10)
-	for _, rule := range field.Check {
-		for _, checkScenario := range rule.GetScenarios() {
-			if checkScenario == scenario {
-				checkRules = append(checkRules, rule)
+	if field.Check != nil {
+		for _, rule := range field.Check {
+			for _, checkScenario := range rule.GetScenarios() {
+				if checkScenario == scenario {
+					checkRules = append(checkRules, rule)
+				}
 			}
 		}
 	}
-	for _, rule := range field.CheckFunc(context) {
-		for _, checkScenario := range rule.GetScenarios() {
-			if checkScenario == scenario {
-				checkRules = append(checkRules, rule)
+	if field.CheckFunc != nil {
+		for _, rule := range field.CheckFunc(context) {
+			for _, checkScenario := range rule.GetScenarios() {
+				if checkScenario == scenario {
+					checkRules = append(checkRules, rule)
+				}
 			}
 		}
 	}
