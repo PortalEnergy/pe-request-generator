@@ -186,7 +186,7 @@ func (generator *Generator) actionList(module *BaseModule, action actions.ListMo
 			action.Search,
 			searchText,
 			filters,
-			&action.Where,
+			action.Where(c),
 			action.Join,
 		)
 
@@ -211,6 +211,18 @@ func (generator *Generator) actionList(module *BaseModule, action actions.ListMo
 			filter = make(map[string]fields.ModuleFilterField)
 			for _, realField := range module.Fields {
 				if containsStrings(action.Filter, realField.Name) {
+					options := make([]fields.ModuleFieldOptions, 0, 10)
+					if realField.Options != nil {
+						for _, item := range realField.Options {
+							options = append(options, item)
+						}
+					}
+					if realField.OptionsFunc != nil {
+						for _, item := range realField.OptionsFunc(c) {
+							options = append(options, item)
+						}
+					}
+
 					filterField := fields.ModuleFilterField{
 						ScanObject: realField.ScanObject,
 						Name:       realField.Name,
@@ -218,7 +230,7 @@ func (generator *Generator) actionList(module *BaseModule, action actions.ListMo
 						Type:       realField.Type,
 						FormType:   realField.FormType,
 						Example:    realField.Example,
-						Options:    realField.OptionsFunc(c),
+						Options:    options,
 						Check:      realField.Check,
 						Convert:    realField.Convert,
 					}
@@ -279,7 +291,7 @@ func (generator *Generator) actionAdd(module *BaseModule, action actions.AddModu
 			return
 		}
 
-		errs := generator.checkRequest(input, module, action, fields.ScenarioAdd)
+		errs := generator.checkRequest(c, input, module, action, fields.ScenarioAdd)
 		if len(errs) > 0 {
 			response.ErrorResponse(l, c, http.StatusBadRequest, GeneratorErrorAdd, errs)
 			return
@@ -319,7 +331,40 @@ func (generator *Generator) actionDefrec(module *BaseModule) func(c *gin.Context
 			return
 		}
 
-		response.Response(l, c, response.NewDefrecResponse(nil, module.Fields))
+		output := make([]fields.ModuleField, 0, 10)
+
+		for _, field := range module.Fields {
+			checkItems := make([]fields.CheckRules, 0, 10)
+			optionItems := make([]fields.ModuleFieldOptions, 0, 10)
+
+			if field.Options != nil {
+				for _, option := range field.Options {
+					optionItems = append(optionItems, option)
+				}
+			}
+			if field.OptionsFunc != nil {
+				for _, option := range field.OptionsFunc(c) {
+					optionItems = append(optionItems, option)
+				}
+			}
+
+			if field.Check != nil {
+				for _, check := range field.Check {
+					checkItems = append(checkItems, check)
+				}
+			}
+			if field.CheckFunc != nil {
+				for _, check := range field.CheckFunc(c) {
+					checkItems = append(checkItems, check)
+				}
+			}
+			field.Options = optionItems
+			field.Check = checkItems
+
+			output = append(output, field)
+		}
+
+		response.Response(l, c, response.NewDefrecResponse(nil, output))
 
 		module.Defrec.AfterRequest(c)
 	}
@@ -407,7 +452,7 @@ func (generator *Generator) actionUpdate(module *BaseModule, action actions.Upda
 			return
 		}
 
-		errs := generator.checkRequest(input, module, action, fields.ScenarioUpdate)
+		errs := generator.checkRequest(c, input, module, action, fields.ScenarioUpdate)
 		if len(errs) > 0 {
 			response.ErrorResponse(l, c, http.StatusBadRequest, GeneratorErrorUpdate, errs)
 			return

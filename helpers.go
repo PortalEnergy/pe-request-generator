@@ -53,6 +53,7 @@ parentLoop:
 }
 
 func (generator *Generator) checkRequest(
+	context *gin.Context,
 	data map[string]interface{},
 	module *BaseModule,
 	action actions.ModuleAction,
@@ -69,7 +70,7 @@ func (generator *Generator) checkRequest(
 			continue
 		}
 
-		rules := module.GetRules(*field, scenario)
+		rules := module.GetRules(context, *field, scenario)
 
 		for _, rule := range rules {
 			err := rule.Validate(value)

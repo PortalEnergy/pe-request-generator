@@ -26,8 +26,8 @@ type ModuleAction interface {
 func NewWhere(
 	fields []ModuleActionWhereField,
 	values []interface{},
-) ModuleActionWhere {
-	return ModuleActionWhere{
+) *ModuleActionWhere {
+	return &ModuleActionWhere{
 		Fields: fields,
 		Values: values,
 	}

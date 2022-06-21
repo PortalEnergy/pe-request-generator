@@ -9,16 +9,16 @@ type ListModuleAction struct {
 	BeforeAction func(c *gin.Context) error
 	AfterAction  func(c *gin.Context)
 
-	Fields     []string           `json:"fields"`
-	Size       int64              `json:"size,omitempty"`
-	Maxsize    int64              `json:"maxsize"`
-	Permission []string           `json:"permission"`
-	Auth       bool               `json:"auth"`
-	Join       []ModuleActionJoin `json:"join"`
-	Where      ModuleActionWhere  `json:"where"`
-	Extra      interface{}        `json:"extra"`
-	Search     []string           `json:"search"`
-	Filter     []string           `json:"filter"`
+	Fields     []string                                `json:"fields"`
+	Size       int64                                   `json:"size,omitempty"`
+	Maxsize    int64                                   `json:"maxsize"`
+	Permission []string                                `json:"permission"`
+	Auth       bool                                    `json:"auth"`
+	Join       []ModuleActionJoin                      `json:"join"`
+	Where      func(c *gin.Context) *ModuleActionWhere `json:"where"`
+	Extra      interface{}                             `json:"extra"`
+	Search     []string                                `json:"search"`
+	Filter     []string                                `json:"filter"`
 }
 
 func (action ListModuleAction) Action() ModuleActionName {

@@ -89,6 +89,7 @@ type ModuleField struct {
 	Options        []ModuleFieldOptions                            `json:"options,omitempty"`
 	OptionsFunc    func(context *gin.Context) []ModuleFieldOptions `json:"-"`
 	Check          []CheckRules                                    `json:"check,omitempty"`
+	CheckFunc      func(context *gin.Context) []CheckRules         `json:"-"`
 	Convert        func(value interface{}) (interface{}, error)    `json:"-"`
 }
 
@@ -125,6 +126,14 @@ func InRule(field string, values []interface{}, scenarios []Scenario) inRule {
 	return inRule{
 		Field:     field,
 		Values:    values,
+		Scenarios: scenarios,
+	}
+}
+
+func InDBRule(field string, values func() []interface{}, scenarios []Scenario) inRule {
+	return inRule{
+		Field:     field,
+		Values:    values(),
 		Scenarios: scenarios,
 	}
 }

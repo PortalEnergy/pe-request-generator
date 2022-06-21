@@ -1,6 +1,7 @@
 package module
 
 import (
+	"github.com/gin-gonic/gin"
 	"github.com/portalenergy/pe-request-generator/actions"
 	"github.com/portalenergy/pe-request-generator/fields"
 )
@@ -24,9 +25,16 @@ func (module BaseModule) GetField(fieldName string) *fields.ModuleField {
 	return nil
 }
 
-func (module BaseModule) GetRules(field fields.ModuleField, scenario fields.Scenario) []fields.CheckRules {
+func (module BaseModule) GetRules(context *gin.Context, field fields.ModuleField, scenario fields.Scenario) []fields.CheckRules {
 	checkRules := make([]fields.CheckRules, 0, 10)
 	for _, rule := range field.Check {
+		for _, checkScenario := range rule.GetScenarios() {
+			if checkScenario == scenario {
+				checkRules = append(checkRules, rule)
+			}
+		}
+	}
+	for _, rule := range field.CheckFunc(context) {
 		for _, checkScenario := range rule.GetScenarios() {
 			if checkScenario == scenario {
 				checkRules = append(checkRules, rule)
