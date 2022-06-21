@@ -176,6 +176,12 @@ func (generator *Generator) actionList(module *BaseModule, action actions.ListMo
 			}
 		}
 
+		var whereResult *actions.ModuleActionWhere
+		if action.Where != nil {
+			whereResult = action.Where(c)
+			fmt.Println("whereResult: ", whereResult)
+		}
+
 		results, count, err := generator.db(module).List(
 			l,
 			module.TableName,
@@ -186,7 +192,7 @@ func (generator *Generator) actionList(module *BaseModule, action actions.ListMo
 			action.Search,
 			searchText,
 			filters,
-			action.Where(c),
+			whereResult,
 			action.Join,
 		)
 
