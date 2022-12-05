@@ -25,6 +25,17 @@ func Response(l *log.Entry, c *gin.Context, data interface{}) {
 	}
 }
 
+func ResponseCSV(l *log.Entry, c *gin.Context, data []byte) {
+	c.Writer.Header().Set("Content-Disposition", "attachment; filename=\"csvResult.csv\"")
+	c.Writer.WriteHeader(http.StatusOK)
+
+	if _, err := c.Writer.Write(data); err != nil {
+		l.WithFields(log.Fields{
+			"Data": data,
+		}).Error("Error json encode in Response")
+	}
+}
+
 // ErrorResponse generate a error response
 func ErrorResponse(l *log.Entry, c *gin.Context, code int, message string, data interface{}) {
 	c.Writer.Header().Set("Content-Type", "application/json; charset=UTF-8")

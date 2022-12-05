@@ -79,18 +79,19 @@ const (
 )
 
 type ModuleField struct {
-	ScanObject     sql.Scanner                                     `json:"-"`
-	Name           string                                          `json:"-"`
-	SelectFunction *string                                         `json:"-"`
-	Title          string                                          `json:"title"`
-	Type           ModuleFieldType                                 `json:"type"`
-	FormType       ModuleFieldFormType                             `json:"form_type,omitempty"`
-	Example        string                                          `json:"example,omitempty"`
-	Options        []ModuleFieldOptions                            `json:"options,omitempty"`
-	OptionsFunc    func(context *gin.Context) []ModuleFieldOptions `json:"-"`
-	Check          []CheckRules                                    `json:"check,omitempty"`
-	CheckFunc      func(context *gin.Context) []CheckRules         `json:"-"`
-	Convert        func(value interface{}) (interface{}, error)    `json:"-"`
+	ScanObject           sql.Scanner                                     `json:"-"`
+	Name                 string                                          `json:"-"`
+	SelectFunction       *string                                         `json:"-"`
+	Title                string                                          `json:"title"`
+	Type                 ModuleFieldType                                 `json:"type"`
+	FormType             ModuleFieldFormType                             `json:"form_type,omitempty"`
+	Example              string                                          `json:"example,omitempty"`
+	Options              []ModuleFieldOptions                            `json:"options,omitempty"`
+	OptionsFunc          func(context *gin.Context) []ModuleFieldOptions `json:"-"`
+	Check                []CheckRules                                    `json:"check,omitempty"`
+	CheckFunc            func(context *gin.Context) []CheckRules         `json:"-"`
+	Convert              func(value interface{}) (interface{}, error)    `json:"-"`
+	ResultValueConverter func(value interface{}) interface{}             `json:"-"`
 }
 
 type ModuleFilterField struct {

@@ -1,9 +1,10 @@
 package module
 
 import (
+	"bytes"
+	"encoding/csv"
+	"encoding/json"
 	"fmt"
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/portalenergy/pe-request-generator/actions"
@@ -12,6 +13,8 @@ import (
 	"github.com/portalenergy/pe-request-generator/icontext"
 	"github.com/portalenergy/pe-request-generator/response"
 	"github.com/portalenergy/pe-request-generator/utils"
+	"net/http"
+	"sort"
 )
 
 const (
@@ -163,7 +166,8 @@ func (generator *Generator) actionList(module *BaseModule, action actions.ListMo
 		}
 
 		page := int64QueryParam(c, "page", 0)
-		size := int64QueryParam(c, "size", 10)
+		size := int64QueryParam(c, "size", 1000)
+		isCSV := int64QueryParam(c, "csv", 0)
 		filters := generator.normalizeFilters(c.QueryMap("filter"), module, action)
 		searchText := c.Query("search")
 		addFilters := c.Query("addFilters")
@@ -182,6 +186,9 @@ func (generator *Generator) actionList(module *BaseModule, action actions.ListMo
 			fmt.Println("whereResult: ", whereResult)
 		}
 
+		if len(filters) > 0 {
+			fmt.Println("filters: ", filters)
+		}
 		results, count, err := generator.db(module).List(
 			l,
 			module.TableName,
@@ -271,7 +278,54 @@ func (generator *Generator) actionList(module *BaseModule, action actions.ListMo
 			Filters: filter,
 		}
 
-		response.Response(l, c, output)
+		if isCSV == 0 {
+			response.Response(l, c, output)
+		} else {
+			resultJsonString, err := json.Marshal(results)
+			if err != nil {
+				response.ErrorResponse(l, c, http.StatusInternalServerError, err.Error(), nil)
+				return
+			}
+
+			var d []map[string]interface{}
+			err = json.Unmarshal(resultJsonString, &d)
+			if err != nil {
+				response.ErrorResponse(l, c, http.StatusInternalServerError, err.Error(), nil)
+				return
+			}
+
+			csvResults := make([][]string, 0, 10)
+			keys := make([]string, 0, 10)
+			for _, v := range d {
+				for key, _ := range v {
+					keys = append(keys, key)
+				}
+				break
+			}
+			sort.Strings(keys)
+			csvResults = append(csvResults, keys)
+
+			for _, v := range d {
+				values := make([]string, 0, 10)
+				for _, key := range keys {
+					valueString, err := json.Marshal(v[key])
+					if err != nil {
+						continue
+					}
+
+					values = append(values, string(valueString))
+				}
+				csvResults = append(csvResults, values)
+			}
+
+			b := new(bytes.Buffer)
+			w := csv.NewWriter(b)
+			w.Comma = '\t'
+			err = w.WriteAll(csvResults)
+			fmt.Println("ERR: ", err)
+
+			response.ResponseCSV(l, c, b.Bytes())
+		}
 	}
 }
 

@@ -86,6 +86,8 @@ func (db *DB) List(
 
 	log.Infoln("LIST QUERY: ", query)
 	log.Infoln("LIST COUNT QUERY: ", countQuery)
+	fmt.Println("LIST QUERY: ", query, values)
+	fmt.Println("LIST COUNT QUERY: ", countQuery)
 
 	var rows *sql.Rows
 	var countResult *sql.Rows
@@ -135,9 +137,17 @@ func (db *DB) List(
 			value, ok := columnValues[index+offset].(driver.Valuer)
 
 			if ok {
-				currentResult[field.Name], _ = value.Value()
+				if field.ResultValueConverter != nil {
+					currentResult[field.Name] = field.ResultValueConverter(value)
+				} else {
+					currentResult[field.Name], _ = value.Value()
+				}
 			} else {
-				currentResult[field.Name] = value
+				if field.ResultValueConverter != nil {
+					currentResult[field.Name] = field.ResultValueConverter(value)
+				} else {
+					currentResult[field.Name] = value
+				}
 			}
 		}
 
@@ -186,8 +196,30 @@ func (db *DB) List(
 				log.Infoln("VIEW JOIN RESULTS: ", joinResults)
 			}
 
-			currentResult[join.ResultArrayName] = joinResults
-			offset += 1
+			joinStringsArray := make([]string, 0, 10)
+			for _, res := range joinResults {
+				jsonRes, err := json.Marshal(res)
+				if err != nil {
+					continue
+				}
+
+				joinStringsArray = append(joinStringsArray, string(jsonRes))
+			}
+			resultUnique := removeDuplicate(joinStringsArray)
+
+			joinResultUnique := make([]map[string]interface{}, 0, 10)
+			for _, res := range resultUnique {
+				var mapResult map[string]interface{}
+				err := json.Unmarshal([]byte(res), &mapResult)
+				if err != nil {
+					continue
+				}
+
+				joinResultUnique = append(joinResultUnique, mapResult)
+			}
+
+			currentResult[join.ResultArrayName] = joinResultUnique
+			//offset += 1
 		}
 
 		results = append(results, currentResult)
@@ -201,8 +233,16 @@ func (db *DB) List(
 			count++
 		}
 	} else {
-		err = countResult.Scan(&count)
+		for countResult.Next() {
+			var currentCount int64
+			err = countResult.Scan(&currentCount)
+			if err == nil {
+				count += currentCount
+			}
+		}
 	}
+
+	fmt.Println("COUNT OF RESULT: ", count)
 
 	return result, count, nil
 }
@@ -481,4 +521,16 @@ func (db *DB) Delete(log *log.Entry, tableName string, key interface{}, value in
 
 func (db *DB) RawRequest(log *log.Entry, query string, params ...interface{}) (*sql.Rows, error) {
 	return db.sql.Query(query, params...)
+}
+
+func removeDuplicate(sliceList []string) []string {
+	allKeys := make(map[string]bool)
+	var list []string
+	for _, item := range sliceList {
+		if _, value := allKeys[item]; !value {
+			allKeys[item] = true
+			list = append(list, item)
+		}
+	}
+	return list
 }

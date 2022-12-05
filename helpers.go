@@ -3,6 +3,7 @@ package module
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/portalenergy/pe-request-generator/actions"
@@ -49,6 +50,14 @@ parentLoop:
 
 		resultFilterMap[filter.Name] = filterValue
 	}
+
+	for key, value := range data {
+		result := strings.Split(key, ".")
+		if len(result) > 1 {
+			resultFilterMap[key] = value
+		}
+	}
+
 	return resultFilterMap
 }
 
@@ -135,6 +144,7 @@ func int64QueryParam(c *gin.Context, param string, defaultValue int64) int64 {
 
 	result, err := strconv.ParseInt(resultString, 0, 10)
 	if err != nil {
+		fmt.Println("PARSE INT ERR: ", err)
 		return defaultValue
 	}
 
