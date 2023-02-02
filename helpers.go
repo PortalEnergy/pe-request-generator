@@ -88,7 +88,7 @@ func (generator *Generator) checkRequest(
 			}
 		}
 
-		if field.Convert != nil {
+		if field.Convert != nil && value != nil {
 			_, err := field.Convert(value)
 			if err != nil {
 				errs[fieldName] = err.Error()

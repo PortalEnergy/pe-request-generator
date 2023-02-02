@@ -5,6 +5,9 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"sort"
+
 	"github.com/gin-gonic/gin"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/portalenergy/pe-request-generator/actions"
@@ -13,8 +16,6 @@ import (
 	"github.com/portalenergy/pe-request-generator/icontext"
 	"github.com/portalenergy/pe-request-generator/response"
 	"github.com/portalenergy/pe-request-generator/utils"
-	"net/http"
-	"sort"
 )
 
 const (
@@ -166,7 +167,7 @@ func (generator *Generator) actionList(module *BaseModule, action actions.ListMo
 		}
 
 		page := int64QueryParam(c, "page", 0)
-		size := int64QueryParam(c, "size", 1000)
+		size := int64QueryParam(c, "size", 3000)
 		isCSV := int64QueryParam(c, "csv", 0)
 		filters := generator.normalizeFilters(c.QueryMap("filter"), module, action)
 		searchText := c.Query("search")

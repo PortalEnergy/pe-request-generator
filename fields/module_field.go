@@ -215,6 +215,9 @@ func (rule requiredRule) Validate(obj interface{}) error {
 }
 
 func (rule inRule) Validate(obj interface{}) error {
+	if obj == nil {
+		return nil
+	}
 	stringValues := make([]interface{}, 0, 10)
 	for _, validationVal := range rule.Values {
 		stringValues = append(stringValues, fmt.Sprintf("%v", validationVal))
