@@ -294,6 +294,7 @@ func (db *DB) View(
 		Page:           0,
 		Size:           1,
 	}
+	where = nil
 	query, values := pq.GetQuery(false)
 	log.Infoln("VIEW QUERY: ", query)
 	fmt.Println("VIEW QUERY: ", query)
