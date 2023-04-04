@@ -8,13 +8,13 @@ type ViewModuleAction struct {
 	AfterAction  func(c *gin.Context)
 	Label        string `json:"label"`
 
-	Fields     []string                                `json:"fields"`
-	Permission []string                                `json:"permission"`
-	Auth       bool                                    `json:"auth"`
-	Join       []ModuleActionJoin                      `json:"join"`
-	Where      func(c *gin.Context) *ModuleActionWhere `json:"where"`
-	By         []interface{}                           `json:"by"`
-	Extra      interface{}                             `json:"extra"`
+	Fields     []string           `json:"fields"`
+	Permission []string           `json:"permission"`
+	Auth       bool               `json:"auth"`
+	Join       []ModuleActionJoin `json:"join"`
+	Where      ModuleActionWhere  `json:"where"`
+	By         []interface{}      `json:"by"`
+	Extra      interface{}        `json:"extra"`
 }
 
 func (action ViewModuleAction) Action() ModuleActionName {
