@@ -266,20 +266,26 @@ func (db *DB) View(
 		}
 	}
 
+	//fmt.Println("SSSSSSSSSSSSS")
+	//fmt.Printf("\n\n\nWhere 1 TEST: %+v\n\n\n", where)
+	//fmt.Printf("\n\n\nWhere keys TEST: %+v\n\n\n", keys)
+
 	for index, key := range keys {
-		if where == nil {
+		if len(where.Fields) == 0 {
 			where = &actions.ModuleActionWhere{
 				Fields: make([]actions.ModuleActionWhereField, 0, 10),
 				Values: make([]interface{}, 0, 10),
 			}
+			where.Fields = append(where.Fields, actions.ModuleActionWhereField{
+				Name:          key.(string),
+				ConditionType: actions.ModuleActionWhereConditionTypeAnd,
+			})
+			where.Values = append(where.Values, values[index])
 		}
 
-		where.Fields = append(where.Fields, actions.ModuleActionWhereField{
-			Name:          key.(string),
-			ConditionType: actions.ModuleActionWhereConditionTypeAnd,
-		})
-		where.Values = append(where.Values, values[index])
 	}
+
+	//fmt.Printf("\n\n\nWhere 2 TEST: %+v\n\n\n", where)
 
 	pq := PostgresQuery{
 		TableName:      tableName,

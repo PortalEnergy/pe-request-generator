@@ -6,10 +6,10 @@ type DeleteModuleAction struct {
 	ModuleAction
 	BeforeAction func(c *gin.Context) error
 	AfterAction  func(c *gin.Context)
-
-	Permission []string      `json:"permission"`
-	Auth       bool          `json:"auth"`
-	By         []interface{} `json:"by"`
+	Label        string        `json:"label"`
+	Permission   []string      `json:"permission"`
+	Auth         bool          `json:"auth"`
+	By           []interface{} `json:"by"`
 }
 
 func (action DeleteModuleAction) Action() ModuleActionName {

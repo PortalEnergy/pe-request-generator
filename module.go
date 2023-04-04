@@ -8,6 +8,7 @@ import (
 
 type BaseModule struct {
 	Name       string                     `json:"name"`
+	Label      string                     `json:"label"`
 	TableName  string                     `json:"table_name"`
 	PrimaryKey string                     `json:"primary_key"`
 	Path       string                     `json:"path"`

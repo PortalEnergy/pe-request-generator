@@ -8,10 +8,10 @@ type AddModuleAction struct {
 	ModuleAction
 	BeforeAction func(c *gin.Context) error
 	AfterAction  func(c *gin.Context)
-
-	Fields     []string `json:"fields"`
-	Permission []string `json:"permission"`
-	Auth       bool     `json:"auth"`
+	Label        string   `json:"label"`
+	Fields       []string `json:"fields"`
+	Permission   []string `json:"permission"`
+	Auth         bool     `json:"auth"`
 }
 
 func (action AddModuleAction) Action() ModuleActionName {

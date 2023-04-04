@@ -25,10 +25,10 @@ const (
 )
 
 type Generator struct {
-	db      func(module *BaseModule) db.DBExecutor
-	group   gin.RouterGroup
-	Modules []*BaseModule
-
+	db                   func(module *BaseModule) db.DBExecutor
+	group                gin.RouterGroup
+	Modules              []*BaseModule
+	Features             []Features
 	AuthMiddleware       func(module actions.ModuleAction) gin.HandlerFunc
 	PermissionMiddleware func(action actions.ModuleAction, permissions []string) gin.HandlerFunc
 }
@@ -41,22 +41,45 @@ func NewGenerator(
 	authMiddleware func(action actions.ModuleAction) gin.HandlerFunc,
 ) *Generator {
 	return &Generator{
-		db:      db,
-		group:   group,
-		Modules: modules,
-
+		db:                   db,
+		group:                group,
+		Modules:              modules,
+		Features:             []Features{},
 		PermissionMiddleware: permissionMiddleware,
 		AuthMiddleware:       authMiddleware,
 	}
 }
 
+func (generator *Generator) FeaturesMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx := c.Request.Context()
+		l, _ := icontext.GetLogger(ctx)
+		response.Response(l, c, generator.Features)
+	}
+}
+
 func (generator *Generator) Run() {
+
+	featuresGroup := generator.group.Group("/api")
+	featuresGroup.GET("/features", generator.FeaturesMiddleware())
+
 	for _, module := range generator.Modules {
+		featuresModule := Features{
+			ModuleName: module.Label,
+			Actions:    make(map[string]FeaturesActions),
+		}
+
 		for _, action := range module.Actions {
 			switch action.Action() {
 			case actions.ModuleActionNameList:
-				listAction, _ := action.(actions.ListModuleAction)
 
+				listAction, _ := action.(actions.ListModuleAction)
+				featuresModule.Actions["list"] = FeaturesActions{
+					Label: listAction.Label,
+					Url:   module.Path + "/" + module.Name,
+					Type:  "GET",
+					Roles: listAction.Permission,
+				}
 				listGrpup := generator.group.Group(module.Path)
 				if listAction.Auth {
 					if generator.AuthMiddleware == nil {
@@ -76,7 +99,18 @@ func (generator *Generator) Run() {
 				listGrpup.GET(module.Name, generator.actionList(module, listAction))
 			case actions.ModuleActionNameAdd:
 				addAction, _ := action.(actions.AddModuleAction)
-
+				featuresModule.Actions["add"] = FeaturesActions{
+					Label: addAction.Label,
+					Url:   module.Path + "/" + module.Name,
+					Type:  "PUT",
+					Roles: addAction.Permission,
+				}
+				featuresModule.Actions["defrec"] = FeaturesActions{
+					Label: addAction.Label,
+					Url:   fmt.Sprintf("%s/%s/defrec/", module.Path, module.Name),
+					Type:  "GET",
+					Roles: addAction.Permission,
+				}
 				addGrpup := generator.group.Group(module.Path)
 				if addAction.Auth {
 					if generator.AuthMiddleware == nil {
@@ -97,7 +131,12 @@ func (generator *Generator) Run() {
 
 			case actions.ModuleActionNameView:
 				viewAction, _ := action.(actions.ViewModuleAction)
-
+				featuresModule.Actions["view"] = FeaturesActions{
+					Label: viewAction.Label,
+					Url:   module.Path + "/" + module.Name,
+					Type:  "GET",
+					Roles: viewAction.Permission,
+				}
 				viewGrout := generator.group.Group(module.Path)
 				if viewAction.Auth {
 					if generator.AuthMiddleware == nil {
@@ -115,7 +154,12 @@ func (generator *Generator) Run() {
 				viewGrout.GET(fmt.Sprintf("%s/view/:bykey/:value", module.Name), generator.actionView(module, viewAction))
 			case actions.ModuleActionNameUpdate:
 				updateAction, _ := action.(actions.UpdateModuleAction)
-
+				featuresModule.Actions["update"] = FeaturesActions{
+					Label: updateAction.Label,
+					Url:   module.Path + "/" + module.Name,
+					Type:  "POST",
+					Roles: updateAction.Permission,
+				}
 				updateGroup := generator.group.Group(module.Path)
 				if updateAction.Auth {
 					if generator.AuthMiddleware == nil {
@@ -133,7 +177,12 @@ func (generator *Generator) Run() {
 				updateGroup.POST(fmt.Sprintf("%s/:bykey/:value", module.Name), generator.actionUpdate(module, updateAction))
 			case actions.ModuleActionNameDelete:
 				deleteAction, _ := action.(actions.DeleteModuleAction)
-
+				featuresModule.Actions["update"] = FeaturesActions{
+					Label: deleteAction.Label,
+					Url:   module.Path + "/" + module.Name,
+					Type:  "DELETE",
+					Roles: deleteAction.Permission,
+				}
 				deleteGroup := generator.group.Group(module.Path)
 				if deleteAction.Auth {
 					if generator.AuthMiddleware == nil {
@@ -150,6 +199,8 @@ func (generator *Generator) Run() {
 				deleteGroup.DELETE(fmt.Sprintf("%s/delete/:bykey/:value", module.Name), generator.actionDelete(module, deleteAction))
 			}
 		}
+
+		generator.Features = append(generator.Features, featuresModule)
 	}
 }
 
