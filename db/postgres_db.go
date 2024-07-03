@@ -23,11 +23,6 @@ type DB struct {
 type Tx struct {
 	sql *sql.Tx
 }
-/* type AddOutptut struct {
-	Id int64 `json:"id"`
-} */
-
-
 
 func NewDB(sql *sql.DB) *DB {
 	return &DB{
@@ -425,7 +420,7 @@ func (db *DB) View(
 func (db *DB) Add(log *log.Entry, tableName string, primaryKey string, fields []fields.ModuleField, input map[string]interface{}) (interface{}, error) {
 	query := fmt.Sprintf(`INSERT INTO public."%s"`, tableName)
 	output := struct {
-		Value int64 `json:"value"`
+		Value      int64  `json:"value"`
 		PrimaryKey string `json:"primary_key"`
 	}{}
 
@@ -463,7 +458,6 @@ func (db *DB) Add(log *log.Entry, tableName string, primaryKey string, fields []
 	fmt.Println(query)
 	fmt.Println(values)
 
-
 	err := db.sql.QueryRow(query, values...).Scan(&output.Value)
 	if err != nil {
 		fmt.Println("ERR: ", err)
@@ -471,13 +465,11 @@ func (db *DB) Add(log *log.Entry, tableName string, primaryKey string, fields []
 		return nil, err
 	}
 
-	output.PrimaryKey = primaryKey;
+	output.PrimaryKey = primaryKey
 
 	//fmt.Println("PK: ", primaryKey, output.Value)
 
-
-
-	return output, nil;
+	return output, nil
 
 	//return db.View(log, tableName, primaryKey, fields, []interface{}{primaryKey}, []interface{}{value}, nil, nil)
 }

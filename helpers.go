@@ -102,12 +102,13 @@ func (generator *Generator) checkRequest(
 func (generator *Generator) mapRequestInput(
 	data map[string]interface{},
 	module *BaseModule,
+	actionFields []string,
 ) map[string]interface{} {
 	output := make(map[string]interface{})
 
 	for _, field := range module.Fields {
 		value, ok := data[field.Name]
-		if ok {
+		if ok && containsStrings(actionFields, field.Name) {
 			if field.Convert != nil {
 				convertedValue, err := field.Convert(value)
 				if err != nil {

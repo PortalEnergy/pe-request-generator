@@ -416,7 +416,7 @@ func (generator *Generator) actionAdd(module *BaseModule, action actions.AddModu
 			}
 		}
 
-		mapInput := generator.mapRequestInput(input, module)
+		mapInput := generator.mapRequestInput(input, module, action.Fields)
 		fmt.Println(mapInput)
 		output, err := generator.db(module).Add(l, module.TableName, module.PrimaryKey, realFields, mapInput)
 		if err != nil {
@@ -577,7 +577,7 @@ func (generator *Generator) actionUpdate(module *BaseModule, action actions.Upda
 			}
 		}
 
-		mapInput := generator.mapRequestInput(input, module)
+		mapInput := generator.mapRequestInput(input, module, action.Fields)
 		output, err := generator.db(module).Update(l, module.TableName, module.PrimaryKey, realFields, mapInput, whereKey, whereValue)
 		if err != nil {
 			response.ErrorResponse(l, c, http.StatusBadRequest, GeneratorErrorUpdate, nil)
